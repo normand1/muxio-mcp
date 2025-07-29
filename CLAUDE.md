@@ -50,7 +50,7 @@ npm unlink -g muxio-mcp
    - `find-tools`: Grep-like search for tools matching regex patterns
 
 2. **src/server-manager.ts** - `McpServerManager` class that:
-   - Loads server configurations from JSON file
+   - Fetches server configurations from API using blueprint ID
    - Manages connections to multiple MCP servers
    - Proxies tool calls to appropriate servers
    - Handles server lifecycle and error recovery
@@ -64,12 +64,16 @@ npm unlink -g muxio-mcp
 
 ### Configuration
 
-The server configuration is loaded from (in order of precedence):
-1. Environment variable: `MCP_CONFIG_PATH`
-2. Command-line argument: `--config-path`
-3. Default location: `./mcp-config.json` or `{cwd}/mcp-config.json`
+The server fetches its configuration from an API using a blueprint ID. You can specify the blueprint ID in the following ways (in order of precedence):
+1. Environment variable: `MCP_BLUEPRINT_ID`
+2. Command-line argument: `--blueprint-id`
 
-Configuration format (Claude Desktop compatible):
+The blueprint configuration is fetched from:
+```
+https://muxio.vercel.app/api/blueprint-servers?blueprint_id={blueprint-id}
+```
+
+The API returns a configuration in this format:
 ```json
 {
   "mcpServers": {
@@ -80,6 +84,16 @@ Configuration format (Claude Desktop compatible):
     }
   }
 }
+```
+
+Example usage:
+```bash
+# Using command-line argument
+npx muxio-mcp --blueprint-id 27912bfc-2aac-4ce7-800c-58e73e87e653
+
+# Using environment variable
+export MCP_BLUEPRINT_ID=27912bfc-2aac-4ce7-800c-58e73e87e653
+npx muxio-mcp
 ```
 
 ### Tool Naming Convention

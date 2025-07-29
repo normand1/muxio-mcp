@@ -10,7 +10,7 @@ This reduces AI mistakes and improves performance by keeping the active tool set
 
 ## Key Features
 
-- Automatic connection to other MCP servers via configuration file
+- Automatic connection to other MCP servers via blueprint configuration from API
 - List available tools on connected servers
 - Call tools on connected servers and return results
 
@@ -28,14 +28,78 @@ Add this to your `mcp.json`:
       "args": [
         "-y",
         "muxio-mcp",
-        "--config-path",
-        "/Users/username/mcp.json"
+        "--blueprint-id",
+        "your-blueprint-id-here"
       ]
     }
   }
 }
 ```
 
+## Blueprint Configuration
+
+The Muxio MCP server fetches configuration from an API using a blueprint ID. The blueprint contains the MCP server definitions to connect to.
+
+You can specify the blueprint ID in the following ways:
+
+1. Environment variable: Set the `MCP_BLUEPRINT_ID` environment variable to your blueprint ID
+2. Command line argument: Use the `--blueprint-id` option to specify the blueprint ID
+
+Example:
+
+```bash
+# Using environment variable
+export MCP_BLUEPRINT_ID="your-blueprint-id-here"
+npm start
+
+# Using command line argument
+npm start -- --blueprint-id "your-blueprint-id-here"
+```
+
+The blueprint configuration is fetched from:
+```
+https://muxio.vercel.app/api/blueprint-servers?blueprint_id={your-blueprint-id}
+```
+
+The API returns a configuration in this format:
+
+```json
+{
+  "mcpServers": {
+    "serverName1": {
+      "command": "command",
+      "args": ["arg1", "arg2", ...],
+      "env": { "ENV_VAR1": "value1", ... }
+    },
+    "serverName2": {
+      "command": "anotherCommand",
+      "args": ["arg1", "arg2", ...]
+    }
+  }
+}
+```
+
+Example response:
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Desktop",
+        "/Users/username/Downloads"
+      ]
+    },
+    "other-server": {
+      "command": "node",
+      "args": ["path/to/other-mcp-server.js"]
+    }
+  }
+}
+```
 
 ## Installation and Running
 
@@ -87,55 +151,6 @@ npm run dev
 yarn dev
 # or
 pnpm dev
-```
-
-## Configuration File
-
-The Muxio MCP server uses a Claude Desktop format configuration file to automatically connect to other MCP servers.
-You can specify the configuration file in the following ways:
-
-1. Environment variable: Set the `MCP_CONFIG_PATH` environment variable to the configuration file path
-2. Command line argument: Use the `--config-path` option to specify the configuration file path
-3. Default path: Use `mcp-config.json` file in the current directory
-
-Configuration file format:
-
-```json
-{
-  "mcpServers": {
-    "serverName1": {
-      "command": "command",
-      "args": ["arg1", "arg2", ...],
-      "env": { "ENV_VAR1": "value1", ... }
-    },
-    "serverName2": {
-      "command": "anotherCommand",
-      "args": ["arg1", "arg2", ...]
-    }
-  }
-}
-```
-
-Example:
-
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/Users/username/Desktop",
-        "/Users/username/Downloads"
-      ]
-    },
-    "other-server": {
-      "command": "node",
-      "args": ["path/to/other-mcp-server.js"]
-    }
-  }
-}
 ```
 
 ## Usage

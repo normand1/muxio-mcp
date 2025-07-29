@@ -6,63 +6,61 @@ import {
   McpConfig,
   McpServerConfig,
 } from "./types.js";
-import fs from "fs";
-import path from "path";
 
 /**
- * Find configuration file path
- * Check in order: environment variable > command line argument > default path
+ * Find blueprint ID from command line arguments or environment variable
  */
-function findConfigPath(): string | undefined {
+function findBlueprintId(): string | undefined {
   // Check environment variable
-  if (process.env.MCP_CONFIG_PATH) {
-    return process.env.MCP_CONFIG_PATH;
+  if (process.env.MCP_BLUEPRINT_ID) {
+    return process.env.MCP_BLUEPRINT_ID;
   }
 
   // Check command line arguments
-  const configArgIndex = process.argv.findIndex(
-    (arg) => arg === "--config-path"
+  const blueprintArgIndex = process.argv.findIndex(
+    (arg) => arg === "--blueprint-id"
   );
   if (
-    configArgIndex !== -1 &&
-    configArgIndex < process.argv.length - 1
+    blueprintArgIndex !== -1 &&
+    blueprintArgIndex < process.argv.length - 1
   ) {
-    return process.argv[configArgIndex + 1];
-  }
-
-  // Check default paths
-  const defaultPaths = [
-    "./mcp-config.json",
-    path.join(process.cwd(), "mcp-config.json"),
-  ];
-
-  for (const defaultPath of defaultPaths) {
-    if (fs.existsSync(defaultPath)) {
-      return defaultPath;
-    }
+    return process.argv[blueprintArgIndex + 1];
   }
 
   return undefined;
 }
 
 /**
- * Load configuration file
+ * Fetch configuration from API using blueprint ID
  */
-function loadConfigFile(configPath: string): McpConfig {
+async function fetchConfigFromApi(blueprintId: string): Promise<McpConfig> {
   try {
-    const configContent = fs.readFileSync(
-      configPath,
-      "utf-8"
-    );
-    return JSON.parse(configContent) as McpConfig;
+    const url = `https://muxio.vercel.app/api/blueprint-servers?blueprint_id=${blueprintId}`;
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const config = await response.json() as McpConfig;
+    
+    if (!config.mcpServers) {
+      throw new Error("Invalid configuration format: missing mcpServers");
+    }
+    
+    return config;
   } catch (error) {
     console.error(
-      `Failed to load configuration file: ${
+      `Failed to fetch configuration from API: ${
         (error as Error).message
       }`
     );
     throw new Error(
-      `Failed to load configuration file '${configPath}': ${
+      `Failed to fetch configuration for blueprint '${blueprintId}': ${
         (error as Error).message
       }`
     );
@@ -71,50 +69,49 @@ function loadConfigFile(configPath: string): McpConfig {
 
 export class McpServerManager {
   private clients: Map<string, Client> = new Map();
-  private configPath?: string;
+  private blueprintId?: string;
 
   /**
    * MCP Server Manager constructor
    */
   constructor(options?: {
-    configPath?: string;
+    blueprintId?: string;
     autoLoad?: boolean;
   }) {
-    this.configPath =
-      options?.configPath || findConfigPath();
+    this.blueprintId =
+      options?.blueprintId || findBlueprintId();
 
-    if (options?.autoLoad && this.configPath) {
-      try {
-        this.loadFromConfig(this.configPath);
-      } catch (error) {
+    if (options?.autoLoad && this.blueprintId) {
+      // Note: Can't await in constructor, so we'll just start the loading process
+      this.loadFromBlueprint(this.blueprintId).catch((error) => {
         console.error(
-          `Failed to load servers from configuration file: ${
+          `Failed to load servers from blueprint: ${
             (error as Error).message
           }`
         );
-      }
+      });
     }
   }
 
   /**
-   * Load server configuration from configuration file
+   * Load server configuration from API using blueprint ID
    */
-  async loadFromConfig(configPath?: string): Promise<void> {
-    const path = configPath || this.configPath;
-    if (!path) {
+  async loadFromBlueprint(blueprintId?: string): Promise<void> {
+    const id = blueprintId || this.blueprintId;
+    if (!id) {
       throw new Error(
-        "Configuration file path not specified."
+        "Blueprint ID not specified."
       );
     }
 
-    const config = loadConfigFile(path);
+    const config = await fetchConfigFromApi(id);
 
     if (
       !config.mcpServers ||
       Object.keys(config.mcpServers).length === 0
     ) {
       console.warn(
-        "No server information in configuration file."
+        "No server information in blueprint configuration."
       );
       return;
     }
@@ -132,11 +129,11 @@ export class McpServerManager {
       try {
         await this.connectToServer(
           serverName,
-          serverConfig
+          serverConfig as McpServerConfig
         );
       } catch (error) {
         console.error(
-          `Failed to connect to server '${serverName}' from configuration file: ${
+          `Failed to connect to server '${serverName}' from blueprint: ${
             (error as Error).message
           }`
         );
