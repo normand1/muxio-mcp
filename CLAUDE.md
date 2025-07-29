@@ -27,10 +27,10 @@ pnpm dev
 ```bash
 # For testing changes locally with npx
 npm link  # Creates a global link to the local package
-npx mcp-hub-mcp  # Test the linked version
+npx muxio-mcp  # Test the linked version
 
 # To unlink after testing
-npm unlink -g mcp-hub-mcp
+npm unlink -g muxio-mcp
 ```
 
 ### Release Process
@@ -112,4 +112,4 @@ Tools from connected servers are prefixed with the server name:
    - Keep dependencies minimal (currently only @modelcontextprotocol/sdk and zod)
    - All types are exported from types.ts for consistency
 
-7. **Binary Execution**: Configured as npm binary `mcp-hub-mcp` with shebang in index.ts
+7. **Binary Execution**: Configured as npm binary `muxio-mcp` with shebang in index.ts

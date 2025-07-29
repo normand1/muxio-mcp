@@ -1,5 +1,5 @@
 {
-	"name": "mcp-hub-mcp",
+	"name": "muxio-mcp",
 	"version": "1.3.0",
 	"description": "MCP Hub server that connects to and manages other MCP servers",
 	"main": "dist/index.js",
@@ -10,7 +10,7 @@
 		"LICENSE"
 	],
 	"bin": {
-		"mcp-hub-mcp": "dist/index.js"
+		"muxio-mcp": "dist/index.js"
 	},
 	"scripts": {
 		"build": "tsc",
